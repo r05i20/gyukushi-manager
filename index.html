@@ -36,8 +36,7 @@ const defaults={total:750,price:300,daySales:0,tickets:[]};
 let data=load();
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return {...defaults}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
-function sync(type,amount=1,ticketId=''){fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type,amount,ticketId})}).catch(()=>{})}
-function yen(n){return '¥'+Number(n).toLocaleString('ja-JP')}
+function sync(type,amount=1,ticketId=''){fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type,amount,ticketId})}).catch(e=>console.error('sync error',e))}function yen(n){return '¥'+Number(n).toLocaleString('ja-JP')}
 function issued(){return data.tickets.length}
 function redeemed(){return data.tickets.filter(x=>x.used).length}
 function sold(){return data.daySales+issued()}
