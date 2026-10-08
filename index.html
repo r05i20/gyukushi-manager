@@ -19,7 +19,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </style>
 </head>
 <body><div class="app">
-<header><h1>🔥 牛串販売管理</h1><p>前売り券・当日販売・引換をまとめて記録</p></header>
+<header><h1> 牛串販売管理</h1><p>前売り券・当日販売・引換をまとめて記録</p></header>
 <main>
 <div class="cards"><div class="card"><div class="label">残り本数</div><div class="value" id="stock">750本</div></div><div class="card"><div class="label">販売済み</div><div class="value" id="sold">0本</div></div><div class="card"><div class="label">売上</div><div class="value" id="revenue">¥0</div></div><div class="card"><div class="label">前売り未引換</div><div class="value" id="pending">0本</div></div></div>
 <nav><button class="active" data-tab="sale">販売</button><button data-tab="tickets">前売り券</button><button data-tab="summary">集計</button><button data-tab="settings">設定</button></nav>
@@ -36,6 +36,7 @@ const defaults={total:750,price:300,daySales:0,tickets:[]};
 let data=load();
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return {...defaults}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function sync(type,amount=1,ticketId=''){fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type,amount,ticketId})}).catch(()=>{})}
 function yen(n){return '¥'+Number(n).toLocaleString('ja-JP')}
 function issued(){return data.tickets.length}
 function redeemed(){return data.tickets.filter(x=>x.used).length}
@@ -49,9 +50,8 @@ function render(){
  [...data.tickets].reverse().forEach(t=>{const d=document.createElement('div');d.className='ticket '+(t.used?'used':'');d.innerHTML=`<div><div>前売り券</div><strong>${t.id}</strong></div><span class="badge">${t.used?'引換済み':'未使用'}</span>`;list.appendChild(d)})
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('section').forEach(s=>s.classList.remove('show'));document.getElementById(b.dataset.tab).classList.add('show')});
-document.getElementById('addSale').onclick=()=>{if(sold()>=data.total)return alert('在庫がありません。');data.daySales++;save()};
-document.getElementById('undoSale').onclick=()=>{if(data.daySales>0){data.daySales--;save()}};
-document.getElementById('issueBtn').onclick=()=>{let n=Math.max(1,parseInt(document.getElementById('ticketCount').value||1));if(sold()+n>data.total)return alert('発行できる枚数を超えています。');let max=data.tickets.reduce((m,t)=>Math.max(m,parseInt(t.id)||0),0);for(let i=1;i<=n;i++)data.tickets.push({id:String(max+i).padStart(6,'0'),used:false});save();alert(n+'枚発行しました。')};
+document.getElementById('addSale').onclick=()=>{if(sold()>=data.total)return alert('在庫がありません。');data.daySales++;save();sync('当日販売',1)};
+document.getElementById('undoSale').onclick=()=>{if(data.daySales>0){data.daySales--;save();sync('当日販売取消',1)}};document.getElementById('issueBtn').onclick=()=>{let n=Math.max(1,parseInt(document.getElementById('ticketCount').value||1));if(sold()+n>data.total)return alert('発行できる枚数を超えています。');let max=data.tickets.reduce((m,t)=>Math.max(m,parseInt(t.id)||0),0);for(let i=1;i<=n;i++)data.tickets.push({id:String(max+i).padStart(6,'0'),used:false});save();alert(n+'枚発行しました。')};
 document.getElementById('redeemBtn').onclick=()=>{const id=document.getElementById('redeemInput').value.trim().padStart(6,'0');const t=data.tickets.find(x=>x.id===id);const msg=document.getElementById('redeemMsg');if(!t){msg.textContent='その券番号は見つかりません。';return}if(t.used){msg.textContent='この券はすでに引き換え済みです。';return}t.used=true;msg.textContent='引き換え完了：券 '+id;document.getElementById('redeemInput').value='';save()};
 document.getElementById('saveSettings').onclick=()=>{const total=parseInt(document.getElementById('totalInput').value),price=parseInt(document.getElementById('priceInput').value);if(!total||price<0)return alert('正しい数値を入力してください。');if(total<sold())return alert('現在の販売済み本数より総本数を少なくできません。');data.total=total;data.price=price;save();alert('設定を保存しました。')};
 document.getElementById('resetBtn').onclick=()=>{if(confirm('本当にすべての記録を消しますか？')){data={...defaults,tickets:[]};save()}};
