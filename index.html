@@ -37,6 +37,7 @@ let data=load();
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return {...defaults}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function sync(type,amount=1,ticketId=''){const url=API_URL+'?type='+encodeURIComponent(type)+'&amount='+encodeURIComponent(amount)+'&ticketId='+encodeURIComponent(ticketId)+'&_='+Date.now();const img=new Image();img.src=url}
+function yen(n){return '¥'+Number(n).toLocaleString('ja-JP')}
 function issued(){return data.tickets.length}
 function redeemed(){return data.tickets.filter(x=>x.used).length}
 function sold(){return data.daySales+issued()}
