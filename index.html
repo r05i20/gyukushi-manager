@@ -50,6 +50,7 @@ const KEY='ushikushi_manager_v1';
 const API_URL='https://script.google.com/macros/s/AKfycbwy8fOKtFHemnlWhbQ1I_mrQmuZPq8p5lyb9v2Fagh1gLExbzZKF3Xmh16IFGGBgfOCSQ/exec';
 const defaults={total:750,price:500,daySales:0,dayRevenue:0,sales:[],tickets:[]};
 let data=load();
+let sharedTickets = [];
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return {...defaults}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function sync(type,amount=1,ticketId=''){const url=API_URL+'?type='+encodeURIComponent(type)+'&amount='+encodeURIComponent(amount)+'&ticketId='+encodeURIComponent(ticketId)+'&_='+Date.now();const img=new Image();img.src=url}
@@ -80,8 +81,8 @@ function apiRequest(params, onResult) {
 }
 
 function yen(n){return '¥'+Number(n).toLocaleString('ja-JP')}
-function issued(){return data.tickets.length}
-function redeemed(){return data.tickets.filter(x=>x.used).length}
+function issued(){return sharedTickets.length}
+function redeemed(){return sharedTickets.filter(t=>t.used).length}
 function sold(){return data.daySales+issued()}
 function revenue(){return sold()*data.price}
 function render(){
@@ -98,6 +99,9 @@ function refreshTickets() {
 
   apiRequest({ action: 'listTickets' }, result => {
     if (!result.success || !Array.isArray(result.tickets)) {
+      sharedTickets = result.tickets;
+      render();
+      refreshTickets();
       list.innerHTML = '<div class="empty">券一覧を取得できませんでした。</div>';
       return;
     }
@@ -163,6 +167,7 @@ document.getElementById('redeemBtn').onclick = () => {
   }, result => {
     if (result.success) {
       msg.textContent = '引換完了：券 ' + id;
+      refreshTickets();
       document.getElementById('redeemInput').value = '';
     } else if (result.message === '使用済み') {
       msg.textContent = 'この券は使用済みです。使用日：' + result.usedDay;
@@ -174,4 +179,5 @@ document.getElementById('redeemBtn').onclick = () => {
 document.getElementById('saveSettings').onclick=()=>{const total=parseInt(document.getElementById('totalInput').value),price=parseInt(document.getElementById('priceInput').value);if(!total||price<0)return alert('正しい数値を入力してください。');if(total<sold())return alert('現在の販売済み本数より総本数を少なくできません。');data.total=total;data.price=price;save();alert('設定を保存しました。')};
 document.getElementById('resetBtn').onclick=()=>{if(confirm('本当にすべての記録を消しますか？')){data={...defaults,tickets:[]};save()}};
 render();
+refreshTickets();
 </script></body></html>
