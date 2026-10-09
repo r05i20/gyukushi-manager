@@ -53,6 +53,32 @@ let data=load();
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return {...defaults}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function sync(type,amount=1,ticketId=''){const url=API_URL+'?type='+encodeURIComponent(type)+'&amount='+encodeURIComponent(amount)+'&ticketId='+encodeURIComponent(ticketId)+'&_='+Date.now();const img=new Image();img.src=url}
+
+function apiRequest(params, onResult) {
+  const callbackName = 'ticketCallback' + Date.now();
+
+  const script = document.createElement('script');
+  const query = new URLSearchParams({
+    ...params,
+    callback: callbackName
+  });
+
+  window[callbackName] = (result) => {
+    delete window[callbackName];
+    script.remove();
+    onResult(result);
+  };
+
+  script.onerror = () => {
+    delete window[callbackName];
+    script.remove();
+    onResult({ success: false, message: '通信に失敗しました。もう一度お試しください。' });
+  };
+
+  script.src = API_URL + '?' + query.toString();
+  document.body.appendChild(script);
+}
+
 function yen(n){return '¥'+Number(n).toLocaleString('ja-JP')}
 function issued(){return data.tickets.length}
 function redeemed(){return data.tickets.filter(x=>x.used).length}
@@ -65,10 +91,86 @@ function render(){
  const list=document.getElementById('ticketList');list.innerHTML='';if(!data.tickets.length){list.innerHTML='<div class="empty">まだ前売り券はありません。</div>';return}
  [...data.tickets].reverse().forEach(t=>{const d=document.createElement('div');d.className='ticket '+(t.used?'used':'');d.innerHTML=`<div><div>前売り券</div><strong>${t.id}</strong></div><span class="badge">${t.used?'引換済み':'未使用'}</span>`;list.appendChild(d)})
 }
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('section').forEach(s=>s.classList.remove('show'));document.getElementById(b.dataset.tab).classList.add('show')});
-document.getElementById('addSale').onclick=()=>{if(sold()>=data.total)return alert('在庫がありません。');data.daySales++;save();sync('当日販売',1)};
+
+function refreshTickets() {
+  const list = document.getElementById('ticketList');
+  list.innerHTML = '<div class="empty">券の状態を取得しています...</div>';
+
+  apiRequest({ action: 'listTickets' }, result => {
+    if (!result.success || !Array.isArray(result.tickets)) {
+      list.innerHTML = '<div class="empty">券一覧を取得できませんでした。</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+
+    result.tickets.forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'ticket ' + (t.used ? 'used' : '');
+
+      const title = document.createElement('strong');
+      title.textContent = t.ticketId;
+
+      const info = document.createElement('div');
+      info.textContent = '前売り券';
+
+      const left = document.createElement('div');
+      left.append(info, title);
+
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = t.used
+        ? '引換済み（' + t.usedDay + '）'
+        : '未使用';
+
+      item.append(left, badge);
+      list.appendChild(item);
+    });
+  });
+}
+
+document.querySelectorAll('nav button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('nav button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+
+    document.querySelectorAll('section').forEach(s => s.classList.remove('show'));
+    document.getElementById(b.dataset.tab).classList.add('show');
+
+    if (b.dataset.tab === 'tickets') {
+      refreshTickets();
+    }
+  };
+});
 document.getElementById('undoSale').onclick=()=>{if(data.daySales>0){data.daySales--;save();sync('当日販売取消',1)}};
-document.getElementById('redeemBtn').onclick=()=>{const id=document.getElementById('redeemInput').value.trim().padStart(6,'0');const t=data.tickets.find(x=>x.id===id);const msg=document.getElementById('redeemMsg');if(!t){msg.textContent='その券番号は見つかりません。';return}if(t.used){msg.textContent='この券はすでに引き換え済みです。';return}t.used=true;msg.textContent='引き換え完了：券 '+id;document.getElementById('redeemInput').value='';save()};
+
+document.getElementById('redeemBtn').onclick = () => {
+  const id = document.getElementById('redeemInput').value.trim();
+  const msg = document.getElementById('redeemMsg');
+  const day = document.getElementById('daySelect').value;
+
+  if (!/^(00[1-9]|0[1-9]\d|100)$/.test(id)) {
+    msg.textContent = '券番号は001〜100で入力してください。';
+    return;
+  }
+
+  msg.textContent = '引換を確認しています...';
+
+  apiRequest({
+    action: 'redeem',
+    day: day,
+    ticketId: id
+  }, result => {
+    if (result.success) {
+      msg.textContent = '引換完了：券 ' + id;
+      document.getElementById('redeemInput').value = '';
+    } else if (result.message === '使用済み') {
+      msg.textContent = 'この券は使用済みです。使用日：' + result.usedDay;
+    } else {
+      msg.textContent = result.message || '引換に失敗しました。';
+    }
+  });
+};
 document.getElementById('saveSettings').onclick=()=>{const total=parseInt(document.getElementById('totalInput').value),price=parseInt(document.getElementById('priceInput').value);if(!total||price<0)return alert('正しい数値を入力してください。');if(total<sold())return alert('現在の販売済み本数より総本数を少なくできません。');data.total=total;data.price=price;save();alert('設定を保存しました。')};
 document.getElementById('resetBtn').onclick=()=>{if(confirm('本当にすべての記録を消しますか？')){data={...defaults,tickets:[]};save()}};
 render();
