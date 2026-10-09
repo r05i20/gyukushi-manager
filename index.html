@@ -65,6 +65,33 @@ let sharedTickets = [];
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return {...defaults}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 
+function unredeemTicket(ticketId, onResult) {
+  const callbackName =
+    'ticketCancel_' + Date.now() + '_' +
+    Math.floor(Math.random() * 100000);
+
+  const script = document.createElement('script');
+  const params = new URLSearchParams({
+    action: 'unredeem',
+    ticketId: ticketId,
+    callback: callbackName
+  });
+
+  window[callbackName] = result => {
+    delete window[callbackName];
+    script.remove();
+    onResult(result);
+  };
+
+  script.onerror = () => {
+    delete window[callbackName];
+    script.remove();
+    alert('サーバーに接続できませんでした。状態を確認してください。');
+  };
+
+  script.src = API_URL + '?' + params.toString();
+  document.body.appendChild(script);
+}
 function sync(type, amount=1, ticketId='', day=daySelect.value) {
   const url = API_URL
     + '?type=' + encodeURIComponent(type)
@@ -165,7 +192,41 @@ function render(){
       ? '引換済み（' + (t.usedDay || '') + '）'
       : '未使用';
 
+    
     item.append(left, badge);
+
+    if (t.used) {
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'secondary danger';
+    cancelBtn.textContent = '未使用に戻す';
+
+    cancelBtn.onclick = () => {
+        if (!confirm(
+        '券 ' + t.ticketId +
+        ' を未使用に戻しますか？'
+        )) return;
+
+        cancelBtn.disabled = true;
+
+        unredeemTicket(t.ticketId, result => {
+        if (!result.success) {
+            alert(result.message || '取消に失敗しました。');
+            cancelBtn.disabled = false;
+            return;
+        }
+
+        
+        alert('券 ' + t.ticketId + ' を未使用に戻しました。');
+
+        // サーバーから最新の券情報を取得して再表示
+        refreshTickets();
+        
+        });
+    };
+
+        item.appendChild(cancelBtn);
+    }
+
     list.appendChild(item);
   });
 }
