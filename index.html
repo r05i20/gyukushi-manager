@@ -64,8 +64,18 @@ function currentDaySales(){
 let sharedTickets = [];
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return {...defaults}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
-function sync(type,amount=1,ticketId=''){const url=API_URL+'?type='+encodeURIComponent(type)+'&amount='+encodeURIComponent(amount)+'&ticketId='+encodeURIComponent(ticketId)+'&_='+Date.now();const img=new Image();img.src=url}
 
+function sync(type, amount=1, ticketId='', day=daySelect.value) {
+  const url = API_URL
+    + '?type=' + encodeURIComponent(type)
+    + '&amount=' + encodeURIComponent(amount)
+    + '&ticketId=' + encodeURIComponent(ticketId)
+    + '&day=' + encodeURIComponent(day)
+    + '&_=' + Date.now();
+
+  const img = new Image();
+  img.src = url;
+}
 function apiRequest(params, onResult) {
   const callbackName = 'ticketCallback' + Date.now();
 
@@ -224,7 +234,7 @@ document.getElementById('addSale').onclick = () => {
     (data.daySalesByDay.Day2 || 0);
 
   save();
-  sync('当日販売', count);
+  sync('当日販売', count, '', day);
 
   alert(`${count}本販売しました。合計：¥${amount.toLocaleString('ja-JP')}`);
 };
@@ -274,8 +284,7 @@ document.getElementById('undoSale').onclick = () => {
     (data.daySalesByDay.Day2 || 0);
 
   save();
-  sync('当日販売取消', sale.count);
-
+  sync('当日販売取消', sale.count, '', day);
   alert(`${sale.count}本の販売を取り消しました。`);
 };
 
