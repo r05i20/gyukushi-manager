@@ -19,20 +19,36 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </style>
 </head>
 <body><div class="app">
-<header><h1> 牛串販売管理</h1><p>前売り券・当日販売・引換をまとめて記録</p></header>
+<header>
+<h1>牛串販売管理</h1>
+<p>前売り券・当日販売・引換をまとめて記録</p>
+<label style="max-width:220px;margin-top:12px">営業日
+<select id="daySelect" style="width:100%;margin-top:6px;padding:12px;border:1px solid var(--border);border-radius:11px;background:var(--surface);color:var(--text);font-size:16px">
+<option value="Day1">Day1</option>
+<option value="Day2">Day2</option>
+</select>
+</label>
+</header>
 <main>
 <div class="cards"><div class="card"><div class="label">残り本数</div><div class="value" id="stock">750本</div></div><div class="card"><div class="label">販売済み</div><div class="value" id="sold">0本</div></div><div class="card"><div class="label">売上</div><div class="value" id="revenue">¥0</div></div><div class="card"><div class="label">前売り未引換</div><div class="value" id="pending">0本</div></div></div>
 <nav><button class="active" data-tab="sale">販売</button><button data-tab="tickets">前売り券</button><button data-tab="summary">集計</button><button data-tab="settings">設定</button></nav>
 <section id="sale" class="show"><div class="panel"><h2>当日販売</h2><button class="primary bigplus" id="addSale">＋ 牛串を1本販売</button><div class="hint">押した回数が当日販売数になります。間違えたら下の「1本戻す」を使えます。</div><button class="secondary" id="undoSale" style="margin-top:12px">1本戻す</button></div>
 <div class="panel"><h2>前売り券の引換</h2><div class="grid"><div><label>券番号<input id="redeemInput" inputmode="numeric" placeholder="例：000123"></label></div><div style="display:flex;align-items:end"><button class="primary" id="redeemBtn">引き換える</button></div></div><div class="hint">未使用の券番号を入力すると1本を引き換え済みにします。</div><div id="redeemMsg" class="hint"></div></div></section>
-<section id="tickets"><div class="panel"><h2>前売り券を発行</h2><div class="grid"><label>発行枚数<input id="ticketCount" type="number" min="1" max="750" value="10"></label><div style="display:flex;align-items:end"><button class="primary" id="issueBtn">券を発行</button></div></div><div class="hint">券番号は自動で連番になります。発行すると販売済み本数・売上にも反映します。</div><div id="ticketList"></div></div></section>
+<section id="tickets">
+  <div class="panel">
+    <h2>前売り券一覧</h2>
+    <p>前売り券は001〜100の100枚です。</p>
+    <p>券はアプリから発行せず、事前に用意した券を使用してください。</p>
+    <div id="ticketList"></div>
+  </div>
+</section>
 <section id="summary"><div class="panel"><h2>集計</h2><table><tbody><tr><td>総在庫</td><td class="right" id="sTotal">750本</td></tr><tr><td>前売り発行</td><td class="right" id="sIssued">0本</td></tr><tr><td>前売り引換済み</td><td class="right" id="sRedeemed">0本</td></tr><tr><td>当日販売</td><td class="right" id="sDay">0本</td></tr><tr><td>販売済み合計</td><td class="right" id="sSold">0本</td></tr><tr><td>残り</td><td class="right" id="sRemain">750本</td></tr><tr><td>売上</td><td class="right" id="sRevenue">¥0</td></tr></tbody></table></div></section>
 <section id="settings"><div class="panel"><h2>設定</h2><div class="grid"><label>総本数<input id="totalInput" type="number" min="1"></label><label>1本の価格<input id="priceInput" type="number" min="0"></label></div><button class="primary" id="saveSettings" style="margin-top:12px">設定を保存</button><div class="hint">750本・300円で初期設定しています。</div></div><div class="panel"><h2>データ</h2><button class="secondary danger" id="resetBtn">すべての記録をリセット</button><div class="hint">※リセットすると前売り券・販売数も消えます。</div></div></section>
 </main></div>
 <script>
 const KEY='ushikushi_manager_v1';
 const API_URL='https://script.google.com/macros/s/AKfycbwy8fOKtFHemnlWhbQ1I_mrQmuZPq8p5lyb9v2Fagh1gLExbzZKF3Xmh16IFGGBgfOCSQ/exec';
-const defaults={total:750,price:300,daySales:0,tickets:[]};
+const defaults={total:750,price:500,daySales:0,dayRevenue:0,sales:[],tickets:[]};
 let data=load();
 function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return {...defaults}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
