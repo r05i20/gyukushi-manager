@@ -49,7 +49,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   </div>
 </section>
 <section id="summary"><div class="panel"><h2>集計</h2><table><tbody><tr><td>総在庫</td><td class="right" id="sTotal">750本</td></tr><tr><td>前売り発行</td><td class="right" id="sIssued">0本</td></tr><tr><td>前売り引換済み</td><td class="right" id="sRedeemed">0本</td></tr><tr><td>当日販売</td><td class="right" id="sDay">0本</td></tr><tr><td>販売済み合計</td><td class="right" id="sSold">0本</td></tr><tr><td>残り</td><td class="right" id="sRemain">750本</td></tr><tr><td>売上</td><td class="right" id="sRevenue">¥0</td></tr></tbody></table></div></section>
-<section id="settings"><div class="panel"><h2>設定</h2><div class="grid"><label>総本数<input id="totalInput" type="number" min="1"></label><label>1本の価格<input id="priceInput" type="number" min="0"></label></div><button class="primary" id="saveSettings" style="margin-top:12px">設定を保存</button><div class="hint">750本・300円で初期設定しています。</div></div><div class="panel"><h2>データ</h2><button class="secondary danger" id="resetBtn">すべての記録をリセット</button><div class="hint">※リセットすると前売り券・販売数も消えます。</div></div></section>
+<section id="settings"><div class="panel"><h2>設定</h2><div class="grid"><label>総本数<input id="totalInput" type="number" min="1"></label><label>1本の価格<input id="priceInput" type="number" min="0"></label></div><button class="primary" id="saveSettings" style="margin-top:12px">設定を保存</button><div class="hint">総在庫には前売り券100本分も含みます。当日販売は1本500円、2本以上は1本450円です。</div><div class="panel"><h2>データ</h2><button class="secondary danger" id="resetBtn">すべての記録をリセット</button><div class="hint">※リセットすると前売り券・販売数も消えます。</div></div></section>
 </main></div>
 <script>
 const KEY='ushikushi_manager_v1';
