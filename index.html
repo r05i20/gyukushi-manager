@@ -58,16 +58,43 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
     <div id="ticketList"></div>
   </div>
 </section>
-<section id="summary"><div class="panel"><h2>集計</h2><table><tbody><tr><td>総在庫</td><td class="right" id="sTotal">750本</td></tr><tr><td>前売り発行</td><td class="right" id="sIssued">0本</td></tr><tr><td>前売り引換済み</td><td class="right" id="sRedeemed">0本</td></tr><tr><td>当日販売</td><td class="right" id="sDay">0本</td>
+<section id="summary">
+  <div class="panel">
+    <h2>集計</h2>
+    <table>
+      <tbody>
+        <tr><td>総在庫</td><td class="right" id="sTotal">1500本</td></tr>
+        <tr><td>前売り発行</td><td class="right" id="sIssued">0本</td></tr>
+        <tr><td>前売り引換済み</td><td class="right" id="sRedeemed">0本</td></tr>
+        <tr><td>当日販売</td><td class="right" id="sDay">0本</td></tr>
+        <tr><td>タレ</td><td class="right" id="sTare">0本</td></tr>
+        <tr><td>塩</td><td class="right" id="sSalt">0本</td></tr>
+        <tr><td>販売済み合計</td><td class="right" id="sSold">0本</td></tr>
+        <tr><td>残り</td><td class="right" id="sRemain">1500本</td></tr>
+        <tr><td>売上</td><td class="right" id="sRevenue">¥0</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 <tr><td>タレ</td><td class="right" id="sTare">0本</td></tr>
 <tr><td>塩</td><td class="right" id="sSalt">0本</td></tr>
 </tr><tr><td>販売済み合計</td><td class="right" id="sSold">0本</td></tr><tr><td>残り</td><td class="right" id="sRemain">750本</td></tr><tr><td>売上</td><td class="right" id="sRevenue">¥0</td></tr></tbody></table></div></section>
-<section id="settings"><div class="panel"><h2>設定</h2><div class="grid"><label>総本数<input id="totalInput" type="number" min="1"></label><label>1本の価格<input id="priceInput" type="number" min="0"></label></div><button class="primary" id="saveSettings" style="margin-top:12px">設定を保存</button><div class="hint">総在庫には前売り券100本分も含みます。当日販売は1本500円、2本以上は1本450円です。</div><div class="panel"><h2>データ</h2><button class="secondary danger" id="resetBtn">すべての記録をリセット</button><div class="hint">※リセットすると前売り券・販売数も消えます。</div></div></section>
+<!-- <section id="settings"><div class="panel"><h2>設定</h2><div class="grid"><label>総本数<input id="totalInput" type="number" min="1"></label><label>1本の価格<input id="priceInput" type="number" min="0"></label></div><button class="primary" id="saveSettings" style="margin-top:12px">設定を保存</button><div class="hint">総在庫には前売り券100本分も含みます。当日販売は1本500円、2本以上は1本450円です。</div><div class="panel"><h2>データ</h2><button class="secondary danger" id="resetBtn">すべての記録をリセット</button><div class="hint">※リセットすると前売り券・販売数も消えます。</div></div></section> -->
 </main></div>
 <script>
 const KEY='ushikushi_manager_v1';
 const API_URL='https://script.google.com/macros/s/AKfycbwy8fOKtFHemnlWhbQ1I_mrQmuZPq8p5lyb9v2Fagh1gLExbzZKF3Xmh16IFGGBgfOCSQ/exec';
-const defaults={total:1500,price:450,daySales:0,daySalesByDay:{Day1:0,Day2:0},tickets:[],tagInUse:[],flavorSales: { タレ: 0, 塩: 0 }};
+const defaults = {
+  total: 1500,
+  price: 450,
+  daySales: 0,
+  daySalesByDay: { Day1: 0, Day2: 0 },
+  dayRevenueByDay: { Day1: 0, Day2: 0 },
+  saleHistory: [],
+  tickets: [],
+  tagInUse: [],
+  flavorSales: { タレ: 0, 塩: 0 }
+};
 let data=load();
 const daySelect = document.getElementById('daySelect');
 
@@ -75,13 +102,45 @@ function currentDaySales(){
   return data.daySalesByDay[daySelect.value] || 0;
 }
 let sharedTickets = [];
-function load(){
+function load() {
   try {
-    const d={...defaults,...JSON.parse(localStorage.getItem(KEY))};
-    if(!Array.isArray(d.tagInUse)) d.tagInUse=[];
-    return d;
-  } catch(e) {
-    return {...defaults,tagInUse:[]};
+    const saved = JSON.parse(localStorage.getItem(KEY)) || {};
+
+    return {
+      ...defaults,
+      ...saved,
+      daySalesByDay: {
+        ...defaults.daySalesByDay,
+        ...(saved.daySalesByDay || {})
+      },
+      dayRevenueByDay: {
+        ...defaults.dayRevenueByDay,
+        ...(saved.dayRevenueByDay || {})
+      },
+      flavorSales: {
+        ...defaults.flavorSales,
+        ...(saved.flavorSales || {})
+      },
+      saleHistory: Array.isArray(saved.saleHistory)
+        ? saved.saleHistory
+        : [],
+      tagInUse: Array.isArray(saved.tagInUse)
+        ? saved.tagInUse
+        : [],
+      tickets: Array.isArray(saved.tickets)
+        ? saved.tickets
+        : []
+    };
+  } catch (e) {
+    return {
+      ...defaults,
+      daySalesByDay: { ...defaults.daySalesByDay },
+      dayRevenueByDay: { ...defaults.dayRevenueByDay },
+      flavorSales: { ...defaults.flavorSales },
+      saleHistory: [],
+      tagInUse: [],
+      tickets: []
+    };
   }
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
@@ -161,11 +220,12 @@ function sold(){
   return totalDaySales() + sharedTickets.length;
 }
 
-function revenue(){
+function revenue() {
   return (data.dayRevenueByDay?.Day1 || 0) +
          (data.dayRevenueByDay?.Day2 || 0) +
          45000;
 }
+
 function render(){
   document.getElementById('stock').textContent =
     Math.max(0, data.total - sold()) + '本';
@@ -178,21 +238,17 @@ function render(){
   document.getElementById('sIssued').textContent = issued() + '本';
   document.getElementById('sRedeemed').textContent = redeemed() + '本';
   document.getElementById('sDay').textContent = currentDaySales() + '本';
+  document.getElementById('sTare').textContent =
+  (data.flavorSales?.タレ || 0) + '本';
+  document.getElementById('sSalt').textContent =
+  (data.flavorSales?.塩 || 0) + '本';
   document.getElementById('sSold').textContent = sold() + '本';
   document.getElementById('sRemain').textContent =
     Math.max(0, data.total - sold()) + '本';
   document.getElementById('sRevenue').textContent = yen(revenue());
 
-  document.getElementById('totalInput').value = data.total;
-  document.getElementById('priceInput').value = data.price;
-
   const list = document.getElementById('ticketList');
   list.innerHTML = '';
-
-  if (!sharedTickets.length) {
-    list.innerHTML = '<div class="empty">前売り券情報を取得していません。</div>';
-    return;
-  }
 
   sharedTickets.forEach(t => {
     const item = document.createElement('div');
@@ -250,6 +306,11 @@ function render(){
 
     list.appendChild(item);
   });
+
+  if (!sharedTickets.length) {
+    list.innerHTML =
+      '<div class="empty">前売り券情報を取得していません。</div>';
+  }
 
   const tags = document.getElementById('tagList');
   if (tags) {
@@ -322,8 +383,6 @@ document.getElementById('addSale').onclick = () => {
   const day = daySelect.value;
   const count = Number(document.getElementById('saleCount').value);
   const flavor = document.getElementById('flavorInput').value;
-  data.daySales++;
-  data.flavorSales[flavor]++;
 
   if (!Number.isInteger(count) || count < 1) {
     alert('購入本数は1本以上の整数で入力してください。');
@@ -339,7 +398,9 @@ document.getElementById('addSale').onclick = () => {
   const amount = count * unitPrice;
 
   data.saleHistory ??= [];
-  data.saleHistory.push({ day, count, amount });
+  data.saleHistory.push({ day, count, amount, flavor });
+  data.flavorSales[flavor] =
+  (data.flavorSales[flavor] || 0) + count;
 
   data.daySalesByDay[day] =
     (data.daySalesByDay[day] || 0) + count;
@@ -353,8 +414,7 @@ document.getElementById('addSale').onclick = () => {
     (data.daySalesByDay.Day2 || 0);
 
   save();
-  sync('当日販売(' + flavor + ')', 1);
-  // sync('当日販売', count, '', day);
+  sync('当日販売(' + flavor + ')', count, '', day);
 
   alert(`${count}本販売しました。合計：¥${amount.toLocaleString('ja-JP')}`);
 };
@@ -380,6 +440,13 @@ document.getElementById('undoSale').onclick = () => {
   }
 
   const sale = history[index];
+
+  if (sale.flavor && data.flavorSales[sale.flavor] !== undefined) {
+    data.flavorSales[sale.flavor] = Math.max(
+      0,
+      data.flavorSales[sale.flavor] - sale.count
+    );
+  }
 
   if (!confirm(
     `${sale.count}本・¥${sale.amount.toLocaleString('ja-JP')}の販売を取り消しますか？`
@@ -436,8 +503,7 @@ document.getElementById('redeemBtn').onclick = () => {
     }
   });
 };
-document.getElementById('saveSettings').onclick=()=>{const total=parseInt(document.getElementById('totalInput').value),price=parseInt(document.getElementById('priceInput').value);if(!total||price<0)return alert('正しい数値を入力してください。');if(total<sold())return alert('現在の販売済み本数より総本数を少なくできません。');data.total=total;data.price=price;save();alert('設定を保存しました。')};
-document.getElementById('resetBtn').onclick=()=>{if(confirm('本当にすべての記録を消しますか？')){data={...defaults,tickets:[],tagInUse:[]};save()}};
+
 daySelect.addEventListener('change', render);
 function updateSaleEstimate() {
   const count = Number(document.getElementById('saleCount').value);
