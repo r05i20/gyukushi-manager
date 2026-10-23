@@ -31,13 +31,19 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </header>
 <main>
 <div class="cards"><div class="card"><div class="label">残り本数</div><div class="value" id="stock">750本</div></div><div class="card"><div class="label">販売済み</div><div class="value" id="sold">0本</div></div><div class="card"><div class="label">売上</div><div class="value" id="revenue">¥0</div></div><div class="card"><div class="label">前売り未引換</div><div class="value" id="pending">0本</div></div></div>
-<nav><button class="active" data-tab="sale">販売</button><button data-tab="tickets">前売り券</button><button data-tab="summary">集計</button><button data-tab="settings">設定</button></nav>
+<nav><button class="active" data-tab="sale">販売</button><button data-tab="tickets">前売り券</button><button data-tab="summary">集計</button></nav>
 <label style="margin-top:12px">
   購入本数
   <input id="saleCount" type="number" min="1" value="1">
 </label>
 <div class="hint">1本500円、2本以上は1本450円です。購入本数を入力してから販売を記録してください。</div>
 <div id="saleEstimate" class="hint">合計金額：¥500</div>
+<label>味を選択
+  <select id="flavorInput">
+    <option value="タレ">タレ</option>
+    <option value="塩">塩</option>
+  </select>
+</label>
 <section id="sale" class="show"><div class="panel"><h2>当日販売</h2><button class="primary bigplus" id="addSale">＋ 当日販売を記録</button><div class="hint">押した回数が当日販売数になります。間違えたら下の「直前の販売を取り消す」を使えます。</div><button class="secondary" id="undoSale" style="margin-top:12px">直前の販売を取り消す</button></div>
 <div class="panel">
   <h2>番号札（001〜030）</h2>
@@ -48,17 +54,20 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <section id="tickets">
   <div class="panel">
     <h2>前売り券一覧</h2>
-    <p>前売り券は001〜100の100枚です。</p>
+    <p>前売り券は001〜150の150枚です。</p>
     <div id="ticketList"></div>
   </div>
 </section>
-<section id="summary"><div class="panel"><h2>集計</h2><table><tbody><tr><td>総在庫</td><td class="right" id="sTotal">750本</td></tr><tr><td>前売り発行</td><td class="right" id="sIssued">0本</td></tr><tr><td>前売り引換済み</td><td class="right" id="sRedeemed">0本</td></tr><tr><td>当日販売</td><td class="right" id="sDay">0本</td></tr><tr><td>販売済み合計</td><td class="right" id="sSold">0本</td></tr><tr><td>残り</td><td class="right" id="sRemain">750本</td></tr><tr><td>売上</td><td class="right" id="sRevenue">¥0</td></tr></tbody></table></div></section>
+<section id="summary"><div class="panel"><h2>集計</h2><table><tbody><tr><td>総在庫</td><td class="right" id="sTotal">750本</td></tr><tr><td>前売り発行</td><td class="right" id="sIssued">0本</td></tr><tr><td>前売り引換済み</td><td class="right" id="sRedeemed">0本</td></tr><tr><td>当日販売</td><td class="right" id="sDay">0本</td>
+<tr><td>タレ</td><td class="right" id="sTare">0本</td></tr>
+<tr><td>塩</td><td class="right" id="sSalt">0本</td></tr>
+</tr><tr><td>販売済み合計</td><td class="right" id="sSold">0本</td></tr><tr><td>残り</td><td class="right" id="sRemain">750本</td></tr><tr><td>売上</td><td class="right" id="sRevenue">¥0</td></tr></tbody></table></div></section>
 <section id="settings"><div class="panel"><h2>設定</h2><div class="grid"><label>総本数<input id="totalInput" type="number" min="1"></label><label>1本の価格<input id="priceInput" type="number" min="0"></label></div><button class="primary" id="saveSettings" style="margin-top:12px">設定を保存</button><div class="hint">総在庫には前売り券100本分も含みます。当日販売は1本500円、2本以上は1本450円です。</div><div class="panel"><h2>データ</h2><button class="secondary danger" id="resetBtn">すべての記録をリセット</button><div class="hint">※リセットすると前売り券・販売数も消えます。</div></div></section>
 </main></div>
 <script>
 const KEY='ushikushi_manager_v1';
 const API_URL='https://script.google.com/macros/s/AKfycbwy8fOKtFHemnlWhbQ1I_mrQmuZPq8p5lyb9v2Fagh1gLExbzZKF3Xmh16IFGGBgfOCSQ/exec';
-const defaults={total:1500,price:450,daySales:0,daySalesByDay:{Day1:0,Day2:0},tickets:[],tagInUse:[]};
+const defaults={total:1500,price:450,daySales:0,daySalesByDay:{Day1:0,Day2:0},tickets:[],tagInUse:[],flavorSales: { タレ: 0, 塩: 0 }};
 let data=load();
 const daySelect = document.getElementById('daySelect');
 
@@ -312,6 +321,9 @@ document.querySelectorAll('nav button').forEach(b => {
 document.getElementById('addSale').onclick = () => {
   const day = daySelect.value;
   const count = Number(document.getElementById('saleCount').value);
+  const flavor = document.getElementById('flavorInput').value;
+  data.daySales++;
+  data.flavorSales[flavor]++;
 
   if (!Number.isInteger(count) || count < 1) {
     alert('購入本数は1本以上の整数で入力してください。');
@@ -341,7 +353,8 @@ document.getElementById('addSale').onclick = () => {
     (data.daySalesByDay.Day2 || 0);
 
   save();
-  sync('当日販売', count, '', day);
+  sync('当日販売(' + flavor + ')', 1);
+  // sync('当日販売', count, '', day);
 
   alert(`${count}本販売しました。合計：¥${amount.toLocaleString('ja-JP')}`);
 };
