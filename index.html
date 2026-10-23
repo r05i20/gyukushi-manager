@@ -44,7 +44,38 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
     <option value="塩">塩</option>
   </select>
 </label>
-<section id="sale" class="show"><div class="panel"><h2>当日販売</h2><button class="primary bigplus" id="addSale">＋ 当日販売を記録</button><div class="hint">押した回数が当日販売数になります。間違えたら下の「直前の販売を取り消す」を使えます。</div><button class="secondary" id="undoSale" style="margin-top:12px">直前の販売を取り消す</button></div>
+<section id="sale" class="show">
+  <div class="panel">
+    <h2>当日販売</h2>
+
+    <div class="grid">
+      <label>
+        タレ（本数）
+        <input id="tareCount" type="number" min="0" value="0">
+      </label>
+
+      <label>
+        塩（本数）
+        <input id="saltCount" type="number" min="0" value="0">
+      </label>
+    </div>
+
+    <button class="primary bigplus" id="addSale">
+      販売を記録
+    </button>
+
+    <div class="hint">
+      タレ・塩の本数を入力してから記録してください。
+    </div>
+
+    <div id="flavorTotals" class="hint">
+      累計：タレ 0本 ／ 塩 0本
+    </div>
+
+    <button class="secondary" id="undoSale" style="margin-top:12px">
+      1本戻す
+    </button>
+  </div>
 <div class="panel">
   <h2>番号札（001〜030）</h2>
   <div class="hint">商品を渡したら番号札を返却して再利用できます。</div>
@@ -227,6 +258,13 @@ function revenue() {
 }
 
 function render(){
+  data.flavorSales = {
+    tare: 0,
+    salt: 0,
+    ...(data.flavorSales || {})
+  };
+  document.getElementById('flavorTotals').textContent =
+  `累計：タレ ${data.flavorSales.tare}本 ／ 塩 ${data.flavorSales.salt}本`;
   document.getElementById('stock').textContent =
     Math.max(0, data.total - sold()) + '本';
   document.getElementById('sold').textContent = sold() + '本';
@@ -380,12 +418,18 @@ document.querySelectorAll('nav button').forEach(b => {
 
 
 document.getElementById('addSale').onclick = () => {
-  const day = daySelect.value;
-  const count = Number(document.getElementById('saleCount').value);
-  const flavor = document.getElementById('flavorInput').value;
+  const tare = Number(document.getElementById('tareCount').value || 0);
+  const salt = Number(document.getElementById('saltCount').value || 0);
+  const count = tare + salt;
 
-  if (!Number.isInteger(count) || count < 1) {
-    alert('購入本数は1本以上の整数で入力してください。');
+  if (
+    !Number.isInteger(tare) ||
+    !Number.isInteger(salt) ||
+    tare < 0 ||
+    salt < 0 ||
+    count === 0
+  ) {
+    alert('タレ・塩の本数を1本以上入力してください。');
     return;
   }
 
@@ -394,29 +438,21 @@ document.getElementById('addSale').onclick = () => {
     return;
   }
 
-  const unitPrice = count === 1 ? 500 : 450;
-  const amount = count * unitPrice;
+  data.flavorSales = {
+    tare: 0,
+    salt: 0,
+    ...(data.flavorSales || {})
+  };
 
-  data.saleHistory ??= [];
-  data.saleHistory.push({ day, count, amount, flavor });
-  data.flavorSales[flavor] =
-  (data.flavorSales[flavor] || 0) + count;
-
-  data.daySalesByDay[day] =
-    (data.daySalesByDay[day] || 0) + count;
-
-  data.dayRevenueByDay ??= { Day1: 0, Day2: 0 };
-  data.dayRevenueByDay[day] =
-    (data.dayRevenueByDay[day] || 0) + amount;
-
-  data.daySales =
-    (data.daySalesByDay.Day1 || 0) +
-    (data.daySalesByDay.Day2 || 0);
+  data.flavorSales.tare += tare;
+  data.flavorSales.salt += salt;
+  data.daySales += count;
 
   save();
-  sync('当日販売(' + flavor + ')', count, '', day);
+  sync('当日販売', count);
 
-  alert(`${count}本販売しました。合計：¥${amount.toLocaleString('ja-JP')}`);
+  document.getElementById('tareCount').value = 0;
+  document.getElementById('saltCount').value = 0;
 };
 
 
