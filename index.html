@@ -51,26 +51,22 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
     <div class="grid">
       <label>
         タレ（本数）
-        <input id="tareCount" type="number" min="0" value="0">
+        <input id="tareCount" type="number" min="0" step="1" value="0">
       </label>
 
       <label>
         塩（本数）
-        <input id="saltCount" type="number" min="0" value="0">
+        <input id="shioCount" type="number" min="0" step="1" value="0">
       </label>
     </div>
 
-    <button class="primary bigplus" id="addSale">
+    <div class="hint">
+      タレ・塩の本数を入力してから、販売を記録してください。
+    </div>
+
+    <button class="primary" id="addSale" style="margin-top:12px">
       販売を記録
     </button>
-
-    <div class="hint">
-      タレ・塩の本数を入力してから記録してください。
-    </div>
-
-    <div id="flavorTotals" class="hint">
-      累計：タレ 0本 ／ 塩 0本
-    </div>
 
     <button class="secondary" id="undoSale" style="margin-top:12px">
       1本戻す
@@ -418,43 +414,31 @@ document.querySelectorAll('nav button').forEach(b => {
 
 
 document.getElementById('addSale').onclick = () => {
-  const tare = Number(document.getElementById('tareCount').value || 0);
-  const salt = Number(document.getElementById('saltCount').value || 0);
-  const count = tare + salt;
+  const tare = Number(document.getElementById('tareCount').value);
+  const shio = Number(document.getElementById('shioCount').value);
+  const count = tare + shio;
 
-  if (
-    !Number.isInteger(tare) ||
-    !Number.isInteger(salt) ||
-    tare < 0 ||
-    salt < 0 ||
-    count === 0
-  ) {
-    alert('タレ・塩の本数を1本以上入力してください。');
-    return;
+  if (!Number.isInteger(tare) || !Number.isInteger(shio) ||
+      tare < 0 || shio < 0) {
+    return alert('0以上の整数を入力してください。');
+  }
+
+  if (count === 0) {
+    return alert('販売本数を1本以上入力してください。');
   }
 
   if (sold() + count > data.total) {
-    alert('在庫が足りません。');
-    return;
+    return alert('在庫が足りません。');
   }
 
-  data.flavorSales = {
-    tare: 0,
-    salt: 0,
-    ...(data.flavorSales || {})
-  };
-
-  data.flavorSales.tare += tare;
-  data.flavorSales.salt += salt;
   data.daySales += count;
-
   save();
+
   sync('当日販売', count);
 
   document.getElementById('tareCount').value = 0;
-  document.getElementById('saltCount').value = 0;
+  document.getElementById('shioCount').value = 0;
 };
-
 
 
 document.getElementById('undoSale').onclick = () => {
