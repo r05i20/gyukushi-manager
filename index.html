@@ -38,12 +38,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </label>
 <div class="hint">1本500円、2本以上は1本450円です。購入本数を入力してから販売を記録してください。</div>
 <div id="saleEstimate" class="hint">合計金額：¥500</div>
-<label>味を選択
-  <select id="flavorInput">
-    <option value="タレ">タレ</option>
-    <option value="塩">塩</option>
-  </select>
-</label>
+
 <section id="sale" class="show">
   <div class="panel">
     <h2>当日販売</h2>
@@ -433,7 +428,6 @@ document.getElementById('addSale').onclick = () => {
 
   data.daySales += count;
   save();
-
   sync('当日販売', count);
 
   document.getElementById('tareCount').value = 0;
