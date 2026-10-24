@@ -66,6 +66,7 @@ let data=load();
 let sharedTickets=[];
 let sharedTags={};
 let tagsLoaded=false;
+let sharedSummary = null;
 
 const $=id=>document.getElementById(id);
 const daySelect=$('daySelect');
@@ -161,14 +162,16 @@ function ticketCount(){
   return sharedTickets.filter(t=>t.used).length;
 }
 
-function soldCount(){
-  return 150+Object.values(data.daySalesByDay)
-    .reduce((a,b)=>a+(Number(b)||0),0);
+function soldCount() {
+  return sharedSummary
+    ? sharedSummary.sold
+    : 150;
 }
 
-function revenueTotal(){
-  return Object.values(data.dayRevenueByDay)
-    .reduce((a,b)=>a+(Number(b)||0),0)+45000;
+function revenueTotal() {
+  return sharedSummary
+    ? sharedSummary.revenue
+    : 45000;
 }
 
 function priceFor(n){
@@ -185,34 +188,36 @@ function updateEstimate(){
 }
 
 function render(){
-  const total=data.total;
-  const sold=soldCount();
+  const total = sharedSummary
+  ? sharedSummary.total
+  : 1500;
+  const sold = soldCount();   
 
-  $('stock').textContent=Math.max(0,total-sold)+'本';
-  $('sold').textContent=sold+'本';
-  $('revenue').textContent=yen(revenueTotal());
-  $('pending').textContent=(150-ticketCount())+'枚';
+    $('stock').textContent=Math.max(0,total-sold)+'本';
+    $('sold').textContent=sold+'本';
+    $('revenue').textContent=yen(revenueTotal());
+    $('pending').textContent=(150-ticketCount())+'枚';
 
-  $('sTotal').textContent=total+'本';
+    $('sTotal').textContent = total + '本';
 
-  $('sDay').textContent=
-    Object.values(data.daySalesByDay)
-      .reduce((a,b)=>a+b,0)+'本';
+    $('sDay').textContent =
+    (sharedSummary ? sharedSummary.regularSales : 0) + '本';
 
-  $('sRedeemed').textContent=
-    data.ticketSales.reduce((a,x)=>a+x.count,0)+'本';
+    $('sRedeemed').textContent =
+    (sharedSummary ? sharedSummary.redeemedCount : 0) + '本';
 
-  $('sTare').textContent=
-    Object.values(data.flavorByDay)
-      .reduce((a,v)=>a+(v.タレ||0),0)+'本';
+    $('sTare').textContent =
+    (sharedSummary ? sharedSummary.tare : 0) + '本';
 
-  $('sSalt').textContent=
-    Object.values(data.flavorByDay)
-      .reduce((a,v)=>a+(v.塩||0),0)+'本';
+    $('sSalt').textContent =
+    (sharedSummary ? sharedSummary.salt : 0) + '本';
 
-  $('sSold').textContent=sold+'本';
-  $('sRemain').textContent=Math.max(0,total-sold)+'本';
-  $('sRevenue').textContent=yen(revenueTotal());
+    $('sSold').textContent = sold + '本';
+
+    $('sRemain').textContent =
+    Math.max(0, total - sold) + '本';
+
+    $('sRevenue').textContent = yen(revenueTotal());
 
   fillTags();
   renderTags('tagList');
@@ -381,6 +386,21 @@ function refreshTags(){
   });
 }
 
+// 共有集計を取得
+function refreshSummary() {
+  apiRequest({ action: 'getSummary' }, r => {
+    if (r.success && r.summary) {
+      sharedSummary = r.summary;
+      render();
+    } else {
+      console.error(
+        '集計の取得に失敗:',
+        r.message || r
+      );
+    }
+  });
+}
+
 // 商品渡し済み・空きへの変更だけをサーバーに依頼する
 // 通常販売・前売り券引換時の状態更新はCode.gs側で行う
 function updateSharedTag(id,status,done){
@@ -445,7 +465,7 @@ $('addSale').onclick=()=>{
     return alert('空いている番号札がありません。');
   }
 
-  if(soldCount()+count>data.total){
+  if(soldCount()+count>(sharedSummary?.total ?? 1500)){
     return alert('在庫が足りません。');
   }
 
@@ -477,22 +497,14 @@ $('addSale').onclick=()=>{
     }
 
     // 販売履歴と番号札の状態はCode.gs側で更新済み
-    data.daySalesByDay[day]=(data.daySalesByDay[day]||0)+count;
-    data.dayRevenueByDay[day]=(data.dayRevenueByDay[day]||0)+price;
-    data.flavorByDay[day][flavor]=
-      (data.flavorByDay[day][flavor]||0)+count;
-
-    data.history.push({
-      day,type,flavor,count,price,tag,
-      payment:'通常販売'
-    });
-
-    save();
-
+    refreshSummary();
+    
     $('saleCount').value=1;
     updateEstimate();
 
+    refreshSummary();
     refreshTags();
+    refreshTickets();
 
     alert(
       '販売を記録しました。番号札 '+tag+
@@ -526,7 +538,7 @@ $('redeemBtn').onclick=()=>{
     return msg.textContent='空いている番号札がありません。';
   }
 
-  if(soldCount()+1>data.total){
+  if(soldCount()+1>(sharedSummary?.total ?? 1500)){
     return msg.textContent='在庫が足りません。';
   }
 
@@ -553,15 +565,7 @@ $('redeemBtn').onclick=()=>{
     }
 
     // 引換履歴と番号札の状態はCode.gs側で更新済み
-    data.ticketSales.push({
-      day,type,flavor,count:1,tag,ticketId:id
-    });
-
-    data.flavorByDay[day][flavor]=
-      (data.flavorByDay[day][flavor]||0)+1;
-
-    save();
-
+    refreshSummary();
     $('redeemInput').value='';
 
     msg.textContent=
@@ -574,17 +578,19 @@ $('redeemBtn').onclick=()=>{
 };
 
 // 初期化
-function init(){
+function init() {
   updateEstimate();
   render();
+
+  refreshSummary();
   refreshTickets();
   refreshTags();
 
-  // 別端末での状態変更を定期的に反映する
-  setInterval(()=>{
+  setInterval(() => {
+    refreshSummary();
     refreshTags();
     refreshTickets();
-  },5000);
+  }, 5000);
 }
 
 init();
