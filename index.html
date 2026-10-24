@@ -25,7 +25,7 @@
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbwy8fOKtFHemnlWhbQ1I_mrQmuZPq8p5lyb9v2Fagh1gLExbzZKF3Xmh16IFGGBgfOCSQ/exec';
 const KEY='ushikushi_manager_v2';
-const defaults={total:750,daySalesByDay:{Day1:0,Day2:0},dayRevenueByDay:{Day1:0,Day2:0},flavorByDay:{Day1:{タレ:0,塩:0},Day2:{タレ:0,塩:0}},ticketSales:[],tagState:{},history:[]};
+const defaults={total:1500,daySalesByDay:{Day1:0,Day2:0},dayRevenueByDay:{Day1:0,Day2:0},flavorByDay:{Day1:{タレ:0,塩:0},Day2:{タレ:0,塩:0}},ticketSales:[],tagState:{},history:[]};
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'{}');return {...defaults,...x,daySalesByDay:{...defaults.daySalesByDay,...x.daySalesByDay},dayRevenueByDay:{...defaults.dayRevenueByDay,...x.dayRevenueByDay},flavorByDay:{Day1:{...defaults.flavorByDay.Day1,...(x.flavorByDay?.Day1||{})},Day2:{...defaults.flavorByDay.Day2,...(x.flavorByDay?.Day2||{})}},ticketSales:Array.isArray(x.ticketSales)?x.ticketSales:[],tagState:x.tagState||{},history:Array.isArray(x.history)?x.history:[]}}catch(e){return structuredClone(defaults)}}
 let data=load(), sharedTickets=[];const $=id=>document.getElementById(id);const daySelect=$('daySelect');
 function apiRequest(params,done){const cb='cb_'+Date.now()+'_'+Math.floor(Math.random()*99999),s=document.createElement('script');const q=new URLSearchParams({...params,callback:cb});let ended=false;const finish=r=>{if(ended)return;ended=true;delete window[cb];s.remove();done(r)};window[cb]=finish;s.onerror=()=>finish({success:false,message:'通信に失敗しました。'});s.src=API_URL+'?'+q.toString();document.body.appendChild(s)}
