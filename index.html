@@ -22,34 +22,569 @@
 <section id="tags"><div class="panel"><h2>番号札（001〜030）</h2><div id="tagList2"></div></div></section>
 <section id="summary"><div class="panel"><h2>集計（この端末の記録）</h2><table><tbody><tr><td>総在庫</td><td class="right" id="sTotal">750本</td></tr><tr><td>通常販売本数</td><td class="right" id="sDay">0本</td></tr><tr><td>前売り引換本数</td><td class="right" id="sRedeemed">0本</td></tr><tr><td>タレ</td><td class="right" id="sTare">0本</td></tr><tr><td>塩</td><td class="right" id="sSalt">0本</td></tr><tr><td>販売・引換合計</td><td class="right" id="sSold">0本</td></tr><tr><td>残り</td><td class="right" id="sRemain">750本</td></tr><tr><td>当日売上合計</td><td class="right" id="sRevenue">¥0</td></tr></tbody></table><div class="hint">売上・販売履歴の正式な記録はDay1・Day2のスプレッドシートを確認してください。</div></div></section>
 </main></div>
+
 <script>
+
 const API_URL='https://script.google.com/macros/s/AKfycbwy8fOKtFHemnlWhbQ1I_mrQmuZPq8p5lyb9v2Fagh1gLExbzZKF3Xmh16IFGGBgfOCSQ/exec';
 const KEY='ushikushi_manager_v2';
-const defaults={total:1500,daySalesByDay:{Day1:0,Day2:0},dayRevenueByDay:{Day1:0,Day2:0},flavorByDay:{Day1:{タレ:0,塩:0},Day2:{タレ:0,塩:0}},ticketSales:[],tagState:{},history:[]};
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'{}');return {...defaults,...x,daySalesByDay:{...defaults.daySalesByDay,...x.daySalesByDay},dayRevenueByDay:{...defaults.dayRevenueByDay,...x.dayRevenueByDay},flavorByDay:{Day1:{...defaults.flavorByDay.Day1,...(x.flavorByDay?.Day1||{})},Day2:{...defaults.flavorByDay.Day2,...(x.flavorByDay?.Day2||{})}},ticketSales:Array.isArray(x.ticketSales)?x.ticketSales:[],tagState:x.tagState||{},history:Array.isArray(x.history)?x.history:[]}}catch(e){return structuredClone(defaults)}}
-let data=load(), sharedTickets=[];const $=id=>document.getElementById(id);const daySelect=$('daySelect');
-function apiRequest(params,done){const cb='cb_'+Date.now()+'_'+Math.floor(Math.random()*99999),s=document.createElement('script');const q=new URLSearchParams({...params,callback:cb});let ended=false;const finish=r=>{if(ended)return;ended=true;delete window[cb];s.remove();done(r)};window[cb]=finish;s.onerror=()=>finish({success:false,message:'通信に失敗しました。'});s.src=API_URL+'?'+q.toString();document.body.appendChild(s)}
-function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
-function yen(n){return '¥'+Number(n||0).toLocaleString('ja-JP')}
-function tagId(i){return String(i).padStart(3,'0')}
-function state(id){return data.tagState[id]||{status:'空き',type:'',flavor:'',count:0,day:'',ticketId:'',payment:'',time:''}}
-function freeTags(){const a=[];for(let i=1;i<=30;i++){const id=tagId(i);if(state(id).status==='空き')a.push(id)}return a}
-function fillTags(){['saleTag','redeemTag'].forEach(id=>{const el=$(id),old=el.value;el.innerHTML='';const opts=freeTags();opts.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;el.appendChild(o)});if(opts.includes(old))el.value=old;if(!opts.length){const o=document.createElement('option');o.value='';o.textContent='空き番号札なし';el.appendChild(o)}})}
-function ticketCount(){return sharedTickets.filter(t=>t.used).length}
-function soldCount(){
-  return 150 + Object.values(data.daySalesByDay)
-    .reduce((a, b) => a + (Number(b) || 0), 0);
+
+const defaults={
+  total:1500,
+  daySalesByDay:{Day1:0,Day2:0},
+  dayRevenueByDay:{Day1:0,Day2:0},
+  flavorByDay:{
+    Day1:{タレ:0,塩:0},
+    Day2:{タレ:0,塩:0}
+  },
+  ticketSales:[],
+  tagState:{},
+  history:[]
+};
+
+function load(){
+  try{
+    const x=JSON.parse(localStorage.getItem(KEY)||'{}');
+    return {
+      ...defaults,
+      ...x,
+      daySalesByDay:{...defaults.daySalesByDay,...x.daySalesByDay},
+      dayRevenueByDay:{...defaults.dayRevenueByDay,...x.dayRevenueByDay},
+      flavorByDay:{
+        Day1:{...defaults.flavorByDay.Day1,...(x.flavorByDay?.Day1||{})},
+        Day2:{...defaults.flavorByDay.Day2,...(x.flavorByDay?.Day2||{})}
+      },
+      ticketSales:Array.isArray(x.ticketSales)?x.ticketSales:[],
+      tagState:x.tagState||{},
+      history:Array.isArray(x.history)?x.history:[]
+    };
+  }catch(e){
+    return structuredClone(defaults);
+  }
 }
-function revenueTotal(){return Object.values(data.dayRevenueByDay).reduce((a,b)=>a+(Number(b)||0),0)+45000}
-function priceFor(n){return n===1?500:n*450}
-function updateEstimate(){const n=Number($('saleCount').value);$('saleEstimate').textContent=Number.isInteger(n)&&n>0?`${n}本の合計金額：${yen(priceFor(n))}`:'本数は1本以上の整数で入力してください。'}
-function render(){const total=data.total;const sold=soldCount();$('stock').textContent=Math.max(0,total-sold)+'本';$('sold').textContent=sold+'本';$('revenue').textContent=yen(revenueTotal());$('pending').textContent=(150-ticketCount())+'枚';$('sTotal').textContent=total+'本';$('sDay').textContent=Object.values(data.daySalesByDay).reduce((a,b)=>a+b,0)+'本';$('sRedeemed').textContent=data.ticketSales.reduce((a,x)=>a+x.count,0)+'本';$('sTare').textContent=Object.values(data.flavorByDay).reduce((a,v)=>a+(v.タレ||0),0)+'本';$('sSalt').textContent=Object.values(data.flavorByDay).reduce((a,v)=>a+(v.塩||0),0)+'本';$('sSold').textContent=sold+'本';$('sRemain').textContent=Math.max(0,total-sold)+'本';$('sRevenue').textContent=yen(revenueTotal());fillTags();renderTags('tagList');renderTags('tagList2');renderTickets()}
-function renderTags(target){const el=$(target);if(!el)return;el.innerHTML='';for(let i=1;i<=30;i++){const id=tagId(i),t=state(id),row=document.createElement('div');row.className='ticket';const left=document.createElement('div'),strong=document.createElement('strong');strong.textContent='番号札 '+id;left.appendChild(strong);const desc=document.createElement('small');desc.textContent=t.status==='空き'?'返却済み・再利用できます':`${t.type}・${t.flavor}・${t.count}本${t.payment==='前売り券'?'（前売り券）':''}`;left.appendChild(desc);const right=document.createElement('div');right.className='actions';const badge=document.createElement('span');badge.className='badge '+(t.status==='商品渡し待ち'?'wait':t.status==='空き'?'used':'');badge.textContent=t.status;right.appendChild(badge);if(t.status==='商品渡し待ち'){const delivered=document.createElement('button');delivered.className='secondary';delivered.textContent='商品を渡した';delivered.onclick=()=>{data.tagState[id]={...t,status:'商品渡し済み',deliveredAt:new Date().toISOString()};save()};right.appendChild(delivered)}if(t.status==='商品渡し済み'){const release=document.createElement('button');release.className='secondary';release.textContent='返却・空きにする';release.onclick=()=>{if(!confirm(`番号札${id}を空きに戻しますか？`))return;data.tagState[id]={status:'空き'};save()};right.appendChild(release)}row.append(left,right);el.appendChild(row)}}
-function renderTickets(){const el=$('ticketList');if(!el)return;el.innerHTML='';if(!sharedTickets.length){el.innerHTML='<div class="empty">券情報を取得しています...</div>';return}sharedTickets.forEach(t=>{const row=document.createElement('div');row.className='ticket';const left=document.createElement('div'),strong=document.createElement('strong');strong.textContent='前売り券 '+t.ticketId;left.appendChild(strong);const small=document.createElement('small');small.textContent=t.used?`引換済み（${t.usedDay||'日付不明'}）`:'未引換';left.appendChild(small);const badge=document.createElement('span');badge.className='badge '+(t.used?'used':'');badge.textContent=t.used?'引換済み':'未引換';row.append(left,badge);el.appendChild(row)})}
-function refreshTickets(){apiRequest({action:'listTickets'},r=>{if(r.success&&Array.isArray(r.tickets)){sharedTickets=r.tickets;render()}else{$('redeemMsg').textContent=r.message||'前売り券一覧を取得できません。'}})}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('main section').forEach(x=>x.classList.toggle('show',x.id===b.dataset.tab));if(b.dataset.tab==='tickets')refreshTickets()});
-$('saleCount').addEventListener('input',updateEstimate);daySelect.addEventListener('change',render);
-$('addSale').onclick=()=>{const day=daySelect.value,type=$('saleType').value,flavor=$('saleFlavor').value,count=Number($('saleCount').value),tag=$('saleTag').value,price=priceFor(count);if(!Number.isInteger(count)||count<1)return alert('本数は1本以上の整数で入力してください。');if(!tag)return alert('空いている番号札がありません。');if(soldCount()+count>data.total)return alert('在庫が足りません。');if(!confirm(`${type}・${flavor}・${count}本\n番号札：${tag}\n合計：${yen(price)}\n記録しますか？`))return;const btn=$('addSale');btn.disabled=true;apiRequest({action:'sale',day,type,flavor,amount:count,price,tagId:tag,payment:'通常販売'},r=>{btn.disabled=false;if(!r.success)return alert(r.message||'記録に失敗しました。スプレッドシートを確認してください。');data.daySalesByDay[day]=(data.daySalesByDay[day]||0)+count;data.dayRevenueByDay[day]=(data.dayRevenueByDay[day]||0)+price;data.flavorByDay[day][flavor]=(data.flavorByDay[day][flavor]||0)+count;data.tagState[tag]={status:'商品渡し待ち',type,flavor,count,day,payment:'通常販売',time:new Date().toISOString()};data.history.push({day,type,flavor,count,price,tag,payment:'通常販売'});save();$('saleCount').value=1;updateEstimate();alert('販売を記録しました。番号札 '+tag+' は商品渡し待ちです。')})};
-$('redeemBtn').onclick=()=>{const raw=$('redeemInput').value.trim(),id=raw.replace(/\D/g,'').padStart(3,'0'),day=daySelect.value,type=$('redeemType').value,flavor=$('redeemFlavor').value,tag=$('redeemTag').value,msg=$('redeemMsg');if(!/^(00[1-9]|0[1-9]\d|1[0-4]\d|150)$/.test(id))return msg.textContent='前売り券番号は001〜150で入力してください。';if(!tag)return msg.textContent='空いている番号札がありません。';if(soldCount()+1>data.total)return msg.textContent='在庫が足りません。';msg.textContent='引換を確認しています...';const btn=$('redeemBtn');btn.disabled=true;apiRequest({action:'redeem',day,ticketId:id,type,flavor,tagId:tag},r=>{btn.disabled=false;if(!r.success){msg.textContent=r.message==='使用済み'?`この前売り券は引換済みです（${r.usedDay}）。`:r.message||'引換に失敗しました。';refreshTickets();return}data.ticketSales.push({day,type,flavor,count:1,tag,ticketId:id});data.tagState[tag]={status:'商品渡し待ち',type,flavor,count:1,day,ticketId:id,payment:'前売り券',time:new Date().toISOString()};data.flavorByDay[day][flavor]=(data.flavorByDay[day][flavor]||0)+1;save();$('redeemInput').value='';msg.textContent=`前売り券${id}を引き換えました。番号札${tag}は商品渡し待ちです。`;refreshTickets()})};
-function init(){for(let i=1;i<=30;i++)if(!data.tagState[tagId(i)])data.tagState[tagId(i)]={status:'空き'};updateEstimate();render();refreshTickets()}init();
-</script></body></html>
+
+let data=load();
+let sharedTickets=[];
+let sharedTags={};
+let tagsLoaded=false;
+
+const $=id=>document.getElementById(id);
+const daySelect=$('daySelect');
+
+// GASにJSONPでリクエストする
+function apiRequest(params,done){
+  const cb='cb_'+Date.now()+'_'+Math.floor(Math.random()*99999);
+  const s=document.createElement('script');
+  const q=new URLSearchParams({...params,callback:cb});
+  let ended=false;
+
+  const finish=r=>{
+    if(ended)return;
+    ended=true;
+    delete window[cb];
+    s.remove();
+    done(r);
+  };
+
+  window[cb]=finish;
+  s.onerror=()=>finish({
+    success:false,
+    message:'通信に失敗しました。'
+  });
+
+  s.src=API_URL+'?'+q.toString();
+  document.body.appendChild(s);
+}
+
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(data));
+  render();
+}
+
+function yen(n){
+  return '¥'+Number(n||0).toLocaleString('ja-JP');
+}
+
+function tagId(i){
+  return String(i).padStart(3,'0');
+}
+
+// 番号札の状態はスプレッドシートの情報を優先する
+function state(id){
+  return sharedTags[id]||{status:'空き'};
+}
+
+// サーバーから番号札一覧を取得するまでは選択させない
+function freeTags(){
+  if(!tagsLoaded)return [];
+
+  const result=[];
+
+  for(let i=1;i<=30;i++){
+    const id=tagId(i);
+    if(state(id).status==='空き')result.push(id);
+  }
+
+  return result;
+}
+
+function fillTags(){
+  ['saleTag','redeemTag'].forEach(id=>{
+    const el=$(id);
+    const old=el.value;
+    el.innerHTML='';
+
+    const opts=freeTags();
+
+    opts.forEach(t=>{
+      const o=document.createElement('option');
+      o.value=t;
+      o.textContent=t;
+      el.appendChild(o);
+    });
+
+    if(opts.includes(old)){
+      el.value=old;
+    }
+
+    if(!opts.length){
+      const o=document.createElement('option');
+      o.value='';
+      o.textContent=tagsLoaded
+        ?'空き番号札なし'
+        :'番号札情報を取得中...';
+      el.appendChild(o);
+    }
+  });
+}
+
+function ticketCount(){
+  return sharedTickets.filter(t=>t.used).length;
+}
+
+function soldCount(){
+  return 150+Object.values(data.daySalesByDay)
+    .reduce((a,b)=>a+(Number(b)||0),0);
+}
+
+function revenueTotal(){
+  return Object.values(data.dayRevenueByDay)
+    .reduce((a,b)=>a+(Number(b)||0),0)+45000;
+}
+
+function priceFor(n){
+  return n===1?500:n*450;
+}
+
+function updateEstimate(){
+  const n=Number($('saleCount').value);
+
+  $('saleEstimate').textContent=
+    Number.isInteger(n)&&n>0
+      ?`${n}本の合計金額：${yen(priceFor(n))}`
+      :'本数は1本以上の整数で入力してください。';
+}
+
+function render(){
+  const total=data.total;
+  const sold=soldCount();
+
+  $('stock').textContent=Math.max(0,total-sold)+'本';
+  $('sold').textContent=sold+'本';
+  $('revenue').textContent=yen(revenueTotal());
+  $('pending').textContent=(150-ticketCount())+'枚';
+
+  $('sTotal').textContent=total+'本';
+
+  $('sDay').textContent=
+    Object.values(data.daySalesByDay)
+      .reduce((a,b)=>a+b,0)+'本';
+
+  $('sRedeemed').textContent=
+    data.ticketSales.reduce((a,x)=>a+x.count,0)+'本';
+
+  $('sTare').textContent=
+    Object.values(data.flavorByDay)
+      .reduce((a,v)=>a+(v.タレ||0),0)+'本';
+
+  $('sSalt').textContent=
+    Object.values(data.flavorByDay)
+      .reduce((a,v)=>a+(v.塩||0),0)+'本';
+
+  $('sSold').textContent=sold+'本';
+  $('sRemain').textContent=Math.max(0,total-sold)+'本';
+  $('sRevenue').textContent=yen(revenueTotal());
+
+  fillTags();
+  renderTags('tagList');
+  renderTags('tagList2');
+  renderTickets();
+}
+
+// 番号札の表示
+function renderTags(target){
+  const el=$(target);
+  if(!el)return;
+
+  el.innerHTML='';
+
+  if(!tagsLoaded){
+    el.innerHTML='<div class="empty">番号札情報を取得しています...</div>';
+    return;
+  }
+
+  for(let i=1;i<=30;i++){
+    const id=tagId(i);
+    const t=state(id);
+    const row=document.createElement('div');
+    row.className='ticket';
+
+    const left=document.createElement('div');
+    const strong=document.createElement('strong');
+
+    strong.textContent='番号札 '+id;
+    left.appendChild(strong);
+
+    const desc=document.createElement('small');
+
+    if(t.status==='空き'){
+      desc.textContent='返却済み・再利用できます';
+    }else if(t.status==='商品渡し待ち'){
+      desc.textContent='商品を渡す前の番号札です';
+    }else{
+      desc.textContent='商品を渡しました。返却待ちです';
+    }
+
+    left.appendChild(desc);
+
+    const right=document.createElement('div');
+    right.className='actions';
+
+    const badge=document.createElement('span');
+    badge.className='badge '+
+      (t.status==='商品渡し待ち'
+        ?'wait'
+        :t.status==='空き'
+          ?'used'
+          :'');
+    badge.textContent=t.status||'空き';
+    right.appendChild(badge);
+
+    if(t.status==='商品渡し待ち'){
+      const delivered=document.createElement('button');
+      delivered.className='secondary';
+      delivered.textContent='商品を渡した';
+
+      delivered.onclick=()=>{
+        delivered.disabled=true;
+
+        updateSharedTag(id,'商品渡し済み',ok=>{
+          delivered.disabled=false;
+        });
+      };
+
+      right.appendChild(delivered);
+    }
+
+    if(t.status==='商品渡し済み'){
+      const release=document.createElement('button');
+      release.className='secondary';
+      release.textContent='返却・空きにする';
+
+      release.onclick=()=>{
+        if(!confirm(`番号札${id}を空きに戻しますか？`))return;
+
+        release.disabled=true;
+
+        updateSharedTag(id,'空き',ok=>{
+          release.disabled=false;
+        });
+      };
+
+      right.appendChild(release);
+    }
+
+    row.append(left,right);
+    el.appendChild(row);
+  }
+}
+
+// 前売り券一覧の表示
+function renderTickets(){
+  const el=$('ticketList');
+  if(!el)return;
+
+  el.innerHTML='';
+
+  if(!sharedTickets.length){
+    el.innerHTML='<div class="empty">券情報を取得しています...</div>';
+    return;
+  }
+
+  sharedTickets.forEach(t=>{
+    const row=document.createElement('div');
+    row.className='ticket';
+
+    const left=document.createElement('div');
+    const strong=document.createElement('strong');
+    strong.textContent='前売り券 '+t.ticketId;
+    left.appendChild(strong);
+
+    const small=document.createElement('small');
+    small.textContent=t.used
+      ?`引換済み（${t.usedDay||'日付不明'}）`
+      :'未引換';
+
+    left.appendChild(small);
+
+    const badge=document.createElement('span');
+    badge.className='badge '+(t.used?'used':'');
+    badge.textContent=t.used?'引換済み':'未引換';
+
+    row.append(left,badge);
+    el.appendChild(row);
+  });
+}
+
+// 前売り券一覧を取得
+function refreshTickets(){
+  apiRequest({action:'listTickets'},r=>{
+    if(r.success&&Array.isArray(r.tickets)){
+      sharedTickets=r.tickets;
+      render();
+    }else{
+      $('redeemMsg').textContent=
+        r.message||'前売り券一覧を取得できません。';
+    }
+  });
+}
+
+// 番号札一覧をスプレッドシートから取得
+function refreshTags(){
+  apiRequest({action:'listTags'},r=>{
+    if(r.success&&Array.isArray(r.tags)){
+      sharedTags={};
+
+      r.tags.forEach(t=>{
+        sharedTags[t.tagId]={
+          status:t.status||'空き'
+        };
+      });
+
+      tagsLoaded=true;
+      render();
+    }else{
+      console.error(
+        '番号札一覧の取得に失敗:',
+        r.message||r
+      );
+    }
+  });
+}
+
+// 商品渡し済み・空きへの変更だけをサーバーに依頼する
+// 通常販売・前売り券引換時の状態更新はCode.gs側で行う
+function updateSharedTag(id,status,done){
+  if(!tagsLoaded){
+    alert('番号札情報を取得中です。少し待ってから再度お試しください。');
+    if(done)done(false);
+    return;
+  }
+
+  apiRequest({
+    action:'updateTag',
+    tagId:id,
+    status
+  },r=>{
+    if(!r.success){
+      alert(r.message||'番号札の状態更新に失敗しました。');
+      refreshTags();
+      if(done)done(false);
+      return;
+    }
+
+    refreshTags();
+    if(done)done(true);
+  });
+}
+
+// タブ切り替え
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button')
+      .forEach(x=>x.classList.toggle('active',x===b));
+
+    document.querySelectorAll('main section')
+      .forEach(x=>x.classList.toggle('show',x.id===b.dataset.tab));
+
+    if(b.dataset.tab==='tickets')refreshTickets();
+    if(b.dataset.tab==='tags')refreshTags();
+  };
+});
+
+$('saleCount').addEventListener('input',updateEstimate);
+daySelect.addEventListener('change',render);
+
+// 通常販売
+$('addSale').onclick=()=>{
+  if(!tagsLoaded){
+    return alert('番号札情報を取得中です。少し待ってください。');
+  }
+
+  const day=daySelect.value;
+  const type=$('saleType').value;
+  const flavor=$('saleFlavor').value;
+  const count=Number($('saleCount').value);
+  const tag=$('saleTag').value;
+  const price=priceFor(count);
+
+  if(!Number.isInteger(count)||count<1){
+    return alert('本数は1本以上の整数で入力してください。');
+  }
+
+  if(!tag){
+    return alert('空いている番号札がありません。');
+  }
+
+  if(soldCount()+count>data.total){
+    return alert('在庫が足りません。');
+  }
+
+  if(!confirm(
+    `${type}・${flavor}・${count}本\n`+
+    `番号札：${tag}\n`+
+    `合計：${yen(price)}\n記録しますか？`
+  ))return;
+
+  const btn=$('addSale');
+  btn.disabled=true;
+
+  apiRequest({
+    action:'sale',
+    day,
+    type,
+    flavor,
+    amount:count,
+    price,
+    tagId:tag,
+    payment:'通常販売'
+  },r=>{
+    btn.disabled=false;
+
+    if(!r.success){
+      alert(r.message||'販売記録に失敗しました。');
+      refreshTags();
+      return;
+    }
+
+    // 販売履歴と番号札の状態はCode.gs側で更新済み
+    data.daySalesByDay[day]=(data.daySalesByDay[day]||0)+count;
+    data.dayRevenueByDay[day]=(data.dayRevenueByDay[day]||0)+price;
+    data.flavorByDay[day][flavor]=
+      (data.flavorByDay[day][flavor]||0)+count;
+
+    data.history.push({
+      day,type,flavor,count,price,tag,
+      payment:'通常販売'
+    });
+
+    save();
+
+    $('saleCount').value=1;
+    updateEstimate();
+
+    refreshTags();
+
+    alert(
+      '販売を記録しました。番号札 '+tag+
+      ' は商品渡し待ちです。'
+    );
+  });
+};
+
+// 前売り券の引換
+$('redeemBtn').onclick=()=>{
+  if(!tagsLoaded){
+    $('redeemMsg').textContent=
+      '番号札情報を取得中です。少し待ってください。';
+    return;
+  }
+
+  const raw=$('redeemInput').value.trim();
+  const id=raw.replace(/\D/g,'').padStart(3,'0');
+  const day=daySelect.value;
+  const type=$('redeemType').value;
+  const flavor=$('redeemFlavor').value;
+  const tag=$('redeemTag').value;
+  const msg=$('redeemMsg');
+
+  if(!/^(00[1-9]|0[1-9]\d|1[0-4]\d|150)$/.test(id)){
+    return msg.textContent=
+      '前売り券番号は001〜150で入力してください。';
+  }
+
+  if(!tag){
+    return msg.textContent='空いている番号札がありません。';
+  }
+
+  if(soldCount()+1>data.total){
+    return msg.textContent='在庫が足りません。';
+  }
+
+  msg.textContent='引換を確認しています...';
+
+  const btn=$('redeemBtn');
+  btn.disabled=true;
+
+  apiRequest({
+    action:'redeem',
+    day,
+    ticketId:id,
+    type,
+    flavor,
+    tagId:tag
+  },r=>{
+    btn.disabled=false;
+
+    if(!r.success){
+      msg.textContent=r.message||'引換に失敗しました。';
+      refreshTickets();
+      refreshTags();
+      return;
+    }
+
+    // 引換履歴と番号札の状態はCode.gs側で更新済み
+    data.ticketSales.push({
+      day,type,flavor,count:1,tag,ticketId:id
+    });
+
+    data.flavorByDay[day][flavor]=
+      (data.flavorByDay[day][flavor]||0)+1;
+
+    save();
+
+    $('redeemInput').value='';
+
+    msg.textContent=
+      `前売り券${id}を引き換えました。`+
+      `番号札${tag}は商品渡し待ちです。`;
+
+    refreshTags();
+    refreshTickets();
+  });
+};
+
+// 初期化
+function init(){
+  updateEstimate();
+  render();
+  refreshTickets();
+  refreshTags();
+
+  // 別端末での状態変更を定期的に反映する
+  setInterval(()=>{
+    refreshTags();
+    refreshTickets();
+  },5000);
+}
+
+init();
