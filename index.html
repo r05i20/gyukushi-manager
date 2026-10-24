@@ -36,7 +36,10 @@ function state(id){return data.tagState[id]||{status:'空き',type:'',flavor:'',
 function freeTags(){const a=[];for(let i=1;i<=30;i++){const id=tagId(i);if(state(id).status==='空き')a.push(id)}return a}
 function fillTags(){['saleTag','redeemTag'].forEach(id=>{const el=$(id),old=el.value;el.innerHTML='';const opts=freeTags();opts.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;el.appendChild(o)});if(opts.includes(old))el.value=old;if(!opts.length){const o=document.createElement('option');o.value='';o.textContent='空き番号札なし';el.appendChild(o)}})}
 function ticketCount(){return sharedTickets.filter(t=>t.used).length}
-function soldCount(){return Object.values(data.daySalesByDay).reduce((a,b)=>a+(Number(b)||0),0)+data.ticketSales.reduce((a,x)=>a+(Number(x.count)||1),0)}
+function soldCount(){
+  return 150 + Object.values(data.daySalesByDay)
+    .reduce((a, b) => a + (Number(b) || 0), 0);
+}
 function revenueTotal(){return Object.values(data.dayRevenueByDay).reduce((a,b)=>a+(Number(b)||0),0)+45000}
 function priceFor(n){return n===1?500:n*450}
 function updateEstimate(){const n=Number($('saleCount').value);$('saleEstimate').textContent=Number.isInteger(n)&&n>0?`${n}本の合計金額：${yen(priceFor(n))}`:'本数は1本以上の整数で入力してください。'}
