@@ -11,14 +11,14 @@
 </style></head>
 <body><div class="app"><header><h1>牛串販売管理</h1><p>当日販売・前売り券引換・番号札をまとめて管理</p><label style="max-width:220px">営業日<select id="daySelect"><option value="Day1">Day1</option><option value="Day2">Day2</option></select></label></header>
 <main>
-<div class="cards"><div class="card"><div class="label">残り本数</div><div class="value" id="stock">750本</div></div><div class="card"><div class="label">販売・引換済み</div><div class="value" id="sold">0本</div></div><div class="card"><div class="label">当日売上</div><div class="value" id="revenue">¥0</div></div><div class="card"><div class="label">前売り未引換</div><div class="value" id="pending">150枚</div></div></div>
+<div class="cards"><div class="card"><div class="label">残り本数</div><div class="value" id="stock">750本</div></div><div class="card"><div class="label">販売・引換済み</div><div class="value" id="sold">0本</div></div><div class="card"><div class="label">当日売上</div><div class="value" id="revenue">¥0</div></div><div class="card"><div class="label">前売り未引換</div><div class="value" id="pending">200枚</div></div></div>
 <nav><button class="active" data-tab="sale">販売・引換</button><button data-tab="tickets">前売り券</button><button data-tab="tags">番号札</button><button data-tab="summary">集計</button></nav>
 <section id="sale" class="show">
 <div class="panel"><h2>当日販売</h2><div class="grid3"><label>種類<select id="saleType"><option value="タン">タン</option><option value="カルビ">カルビ</option></select></label><label>味<select id="saleFlavor"><option value="タレ">タレ</option><option value="塩">塩</option></select></label><label>本数<input id="saleCount" type="number" min="1" step="1" value="1"></label></div><label style="margin-top:12px">番号札<select id="saleTag"></select></label><div class="estimate" id="saleEstimate">合計金額：¥500</div><button class="primary full" id="addSale">販売を記録</button><div class="hint">1本500円、同じ注文で2本以上なら1本450円です。番号札は商品渡し待ちになります。</div></div>
 <div class="panel"><h2>前売り券の引換</h2><div class="grid"><label>前売り券番号<input id="redeemInput" inputmode="numeric" placeholder="例：001" maxlength="3"></label><label>商品種類<select id="redeemType"><option value="タン">タン</option><option value="カルビ">カルビ</option></select></label><label>味<select id="redeemFlavor"><option value="タレ">タレ</option><option value="塩">塩</option></select></label><label>番号札<select id="redeemTag"></select></label></div><button class="primary full" id="redeemBtn">前売り券を引き換える</button><div id="redeemMsg" class="hint" aria-live="polite"></div><div class="hint">前売り券はすでに支払い済みのため、引換時の売上には加算しません。</div></div>
 <div class="panel"><h2>番号札の受け渡し状況</h2><div class="hint">商品を渡したら「商品を渡した」を押し、番号札が戻ってきたら「返却・空きにする」を押してください。</div><div id="tagList"></div></div>
 </section>
-<section id="tickets"><div class="panel"><h2>前売り券一覧</h2><div class="hint">001〜150。使用状況はDay1・Day2で共通です。</div><div id="ticketList"></div></div></section>
+<section id="tickets"><div class="panel"><h2>前売り券一覧</h2><div class="hint">001〜200。使用状況はDay1・Day2で共通です。</div><div id="ticketList"></div></div></section>
 <section id="tags"><div class="panel"><h2>番号札（001〜030）</h2><div id="tagList2"></div></div></section>
 <section id="summary"><div class="panel"><h2>集計（この端末の記録）</h2><table><tbody><tr><td>総在庫</td><td class="right" id="sTotal">750本</td></tr><tr><td>通常販売本数</td><td class="right" id="sDay">0本</td></tr><tr><td>前売り引換本数</td><td class="right" id="sRedeemed">0本</td></tr><tr><td>タレ</td><td class="right" id="sTare">0本</td></tr><tr><td>塩</td><td class="right" id="sSalt">0本</td></tr><tr><td>販売・引換合計</td><td class="right" id="sSold">0本</td></tr><tr><td>残り</td><td class="right" id="sRemain">750本</td></tr><tr><td>当日売上合計</td><td class="right" id="sRevenue">¥0</td></tr></tbody></table><div class="hint">売上・販売履歴の正式な記録はDay1・Day2のスプレッドシートを確認してください。</div></div></section>
 </main></div>
@@ -165,13 +165,13 @@ function ticketCount(){
 function soldCount() {
   return sharedSummary
     ? sharedSummary.sold
-    : 150;
+    : 200;
 }
 
 function revenueTotal() {
   return sharedSummary
     ? sharedSummary.revenue
-    : 45000;
+    : 60000;
 }
 
 function priceFor(n){
@@ -196,7 +196,7 @@ function render(){
     $('stock').textContent=Math.max(0,total-sold)+'本';
     $('sold').textContent=sold+'本';
     $('revenue').textContent=yen(revenueTotal());
-    $('pending').textContent=(150-ticketCount())+'枚';
+    $('pending').textContent=(200-ticketCount())+'枚';
 
     $('sTotal').textContent = total + '本';
 
@@ -529,9 +529,9 @@ $('redeemBtn').onclick=()=>{
   const tag=$('redeemTag').value;
   const msg=$('redeemMsg');
 
-  if(!/^(00[1-9]|0[1-9]\d|1[0-4]\d|150)$/.test(id)){
+  if(!/^(00[1-9]|0[1-9]\d|1\d\d|200)$/.test(id)){
     return msg.textContent=
-      '前売り券番号は001〜150で入力してください。';
+      '前売り券番号は001〜200で入力してください。';
   }
 
   if(!tag){
