@@ -578,6 +578,7 @@ $('redeemBtn').onclick=()=>{
 };
 
 // 初期化
+
 function init() {
   updateEstimate();
   render();
@@ -586,16 +587,20 @@ function init() {
   refreshTickets();
   refreshTags();
 
-  // 残り本数・販売済み本数は2秒ごとに更新
+  // 残り本数・販売済み本数：1秒ごと
   setInterval(() => {
     refreshSummary();
-  }, 2000);
+  }, 1000);
 
-  // 番号札・前売り券は2秒ごとに更新
+  // 番号札：1秒ごと
   setInterval(() => {
     refreshTags();
+  }, 1000);
+
+  // 前売り券：3秒ごと
+  setInterval(() => {
     refreshTickets();
-  }, 2000);
+  }, 3000);
 }
 
 init();
