@@ -586,11 +586,16 @@ function init() {
   refreshTickets();
   refreshTags();
 
+  // 残り本数・販売済み本数は2秒ごとに更新
   setInterval(() => {
     refreshSummary();
+  }, 2000);
+
+  // 番号札・前売り券は2秒ごとに更新
+  setInterval(() => {
     refreshTags();
     refreshTickets();
-  }, 5000);
+  }, 2000);
 }
 
 init();
