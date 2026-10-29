@@ -403,27 +403,35 @@ function refreshSummary() {
 
 // 商品渡し済み・空きへの変更だけをサーバーに依頼する
 // 通常販売・前売り券引換時の状態更新はCode.gs側で行う
-function updateSharedTag(id,status,done){
-  if(!tagsLoaded){
+// 商品渡し済み・空きへの変更
+function updateSharedTag(id, status, done) {
+  if (!tagsLoaded) {
     alert('番号札情報を取得中です。少し待ってから再度お試しください。');
-    if(done)done(false);
+    if (done) done(false);
     return;
   }
 
   apiRequest({
-    action:'updateTag',
-    tagId:id,
+    action: 'updateTag',
+    tagId: id,
     status
-  },r=>{
-    if(!r.success){
-      alert(r.message||'番号札の状態更新に失敗しました。');
+  }, r => {
+    if (!r.success) {
+      alert(r.message || '番号札の状態更新に失敗しました。');
       refreshTags();
-      if(done)done(false);
+      if (done) done(false);
       return;
     }
 
-    refreshTags();
-    if(done)done(true);
+    // 再取得せず、サーバーの成功応答を受けたら画面を更新
+    sharedTags[id] = {
+      ...(sharedTags[id] || {}),
+      status
+    };
+
+    render();
+
+    if (done) done(true);
   });
 }
 
@@ -496,15 +504,19 @@ $('addSale').onclick=()=>{
       return;
     }
 
-    // 販売履歴と番号札の状態はCode.gs側で更新済み
-    refreshSummary();
-    
-    $('saleCount').value=1;
-    updateEstimate();
+    // 販売登録はサーバーで成功済み。
+    // 番号札一覧を再取得せず、手元の状態を更新する。
+    sharedTags[tag] = {
+      ...(sharedTags[tag] || {}),
+      status: '商品渡し待ち'
+    };
 
+    $('saleCount').value = 1;
+    updateEstimate();
+    render();
+
+    // 集計だけ更新する
     refreshSummary();
-    refreshTags();
-    refreshTickets();
 
     alert(
       '販売を記録しました。番号札 '+tag+
