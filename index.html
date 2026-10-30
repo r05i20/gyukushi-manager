@@ -11,15 +11,36 @@
 </style></head>
 <body><div class="app"><header><h1>牛串販売管理</h1><p>当日販売・前売り券引換・番号札をまとめて管理</p><label style="max-width:220px">営業日<select id="daySelect"><option value="Day1">Day1</option><option value="Day2">Day2</option></select></label></header>
 <main>
-<div class="cards"><div class="card"><div class="label">残り本数</div><div class="value" id="stock">750本</div></div><div class="card"><div class="label">販売・引換済み</div><div class="value" id="sold">0本</div></div><div class="card"><div class="label">当日売上</div><div class="value" id="revenue">¥0</div></div><div class="card"><div class="label">前売り未引換</div><div class="value" id="pending">200枚</div></div></div>
+<div class="cards"><div class="card"><div class="label">残り本数</div><div class="value" id="stock">1300本</div></div><div class="card"><div class="label">販売・引換済み</div><div class="value" id="sold">0本</div></div><div class="card"><div class="label">当日売上</div><div class="value" id="revenue">¥0</div></div><div class="card"><div class="label">前売り未引換</div><div class="value" id="pending">200枚</div></div></div>
 <nav><button class="active" data-tab="sale">販売・引換</button><button data-tab="tickets">前売り券</button><button data-tab="tags">番号札</button><button data-tab="summary">集計</button></nav>
 <section id="sale" class="show">
 <div class="panel"><h2>当日販売</h2><div class="grid3"><label>種類<select id="saleType"><option value="タン">タン</option><option value="カルビ">カルビ</option></select></label><label>味<select id="saleFlavor"><option value="タレ">タレ</option><option value="塩">塩</option></select></label><label>本数<input id="saleCount" type="number" min="1" step="1" value="1"></label></div><label style="margin-top:12px">番号札<select id="saleTag"></select></label><div class="estimate" id="saleEstimate">合計金額：¥500</div><button class="primary full" id="addSale">販売を記録</button><div class="hint">1本500円、同じ注文で2本以上なら1本450円です。番号札は商品渡し待ちになります。</div></div>
-<label for="redeemType">商品の種類</label>
-<select id="redeemType">
-  <option value="タン">タン</option>
-  <option value="カルビ">カルビ</option>
-</select>
+<div class="panel">
+  <h2>前売り券引換</h2>
+
+  <div class="grid">
+    <label>
+      前売り券番号
+      <input id="redeemInput" type="text" placeholder="001〜200">
+    </label>
+
+    <label>
+      味
+      <select id="redeemFlavor">
+        <option value="タレ">タレ</option>
+        <option value="塩">塩</option>
+      </select>
+    </label>
+  </div>
+
+  <label style="margin-top:12px">
+    番号札
+    <select id="redeemTag"></select>
+  </label>
+
+  <button class="primary full" id="redeemBtn">前売り券を引き換える</button>
+  <div class="hint" id="redeemMsg"></div>
+</div>
 <div class="panel"><h2>番号札の受け渡し状況</h2><div class="hint">商品を渡したら「商品を渡した」を押し、番号札が戻ってきたら「返却・空きにする」を押してください。</div><div id="tagList"></div></div>
 </section>
 <section id="tickets"><div class="panel"><h2>前売り券一覧</h2><div class="hint">001〜200。使用状況はDay1・Day2で共通です。</div><div id="ticketList"></div></div></section>
