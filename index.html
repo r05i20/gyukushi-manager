@@ -15,7 +15,11 @@
 <nav><button class="active" data-tab="sale">販売・引換</button><button data-tab="tickets">前売り券</button><button data-tab="tags">番号札</button><button data-tab="summary">集計</button></nav>
 <section id="sale" class="show">
 <div class="panel"><h2>当日販売</h2><div class="grid3"><label>種類<select id="saleType"><option value="タン">タン</option><option value="カルビ">カルビ</option></select></label><label>味<select id="saleFlavor"><option value="タレ">タレ</option><option value="塩">塩</option></select></label><label>本数<input id="saleCount" type="number" min="1" step="1" value="1"></label></div><label style="margin-top:12px">番号札<select id="saleTag"></select></label><div class="estimate" id="saleEstimate">合計金額：¥500</div><button class="primary full" id="addSale">販売を記録</button><div class="hint">1本500円、同じ注文で2本以上なら1本450円です。番号札は商品渡し待ちになります。</div></div>
-<div class="panel"><h2>前売り券の引換</h2><div class="grid"><label>前売り券番号<input id="redeemInput" inputmode="numeric" placeholder="例：001" maxlength="3"></label><label>商品種類<select id="redeemType"><option value="タン">タン</option><option value="カルビ">カルビ</option></select></label><label>味<select id="redeemFlavor"><option value="タレ">タレ</option><option value="塩">塩</option></select></label><label>番号札<select id="redeemTag"></select></label></div><button class="primary full" id="redeemBtn">前売り券を引き換える</button><div id="redeemMsg" class="hint" aria-live="polite"></div><div class="hint">前売り券はすでに支払い済みのため、引換時の売上には加算しません。</div></div>
+<label for="redeemType">商品の種類</label>
+<select id="redeemType">
+  <option value="タン">タン</option>
+  <option value="カルビ">カルビ</option>
+</select>
 <div class="panel"><h2>番号札の受け渡し状況</h2><div class="hint">商品を渡したら「商品を渡した」を押し、番号札が戻ってきたら「返却・空きにする」を押してください。</div><div id="tagList"></div></div>
 </section>
 <section id="tickets"><div class="panel"><h2>前売り券一覧</h2><div class="hint">001〜200。使用状況はDay1・Day2で共通です。</div><div id="ticketList"></div></div></section>
@@ -171,7 +175,7 @@ function soldCount() {
 function revenueTotal() {
   return sharedSummary
     ? sharedSummary.revenue
-    : 60000;
+    : 70000;
 }
 
 function priceFor(n){
@@ -536,7 +540,6 @@ $('redeemBtn').onclick=()=>{
   const raw=$('redeemInput').value.trim();
   const id=raw.replace(/\D/g,'').padStart(3,'0');
   const day=daySelect.value;
-  const type=$('redeemType').value;
   const flavor=$('redeemFlavor').value;
   const tag=$('redeemTag').value;
   const msg=$('redeemMsg');
@@ -563,7 +566,6 @@ $('redeemBtn').onclick=()=>{
     action:'redeem',
     day,
     ticketId:id,
-    type,
     flavor,
     tagId:tag
   },r=>{
